@@ -1,6 +1,6 @@
 # Vela
 
-Native macOS developer project manager that scans, analyzes, and monitors all your coding projects — from a single menu bar app.
+I had hundreds of coding projects scattered across my Mac and no idea what half of them were. Opening every folder to check was not an option. So I built Vela — a native macOS menu bar app that scans, analyzes, and monitors all your projects automatically. Built in under an hour with Swift, SwiftUI, and Claude Opus 4.6.
 
 ![macOS](https://img.shields.io/badge/macOS-14%2B-000000?logo=apple)
 ![Swift](https://img.shields.io/badge/Swift-5.9-F05138?logo=swift&logoColor=white)
@@ -8,9 +8,7 @@ Native macOS developer project manager that scans, analyzes, and monitors all yo
 ![Dependencies](https://img.shields.io/badge/Dependencies-0-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
-Vela automatically discovers every project on your Mac, gives each a health score, runs AI-powered analysis, detects security issues, and shows git stats — all without leaving the menu bar.
-
-**Zero external dependencies. Pure Apple frameworks.**
+Every project gets a health score, AI-powered analysis, security scanning, git stats, and file browsing — all from the menu bar. Zero external dependencies. Pure Apple frameworks.
 
 <p align="center">
   <img src="docs/screenshots/vela-explorer.png" width="720" alt="Vela — Explorer with project sidebar and README rendering" />
