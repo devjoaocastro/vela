@@ -19,6 +19,20 @@ struct ContentView: View {
                 EmptyStateView()
             }
         }
+        // ⌘K command palette overlay
+        .overlay {
+            if appState.showCommandPalette {
+                CommandPaletteView()
+                    .transition(.opacity.combined(with: .scale(scale: 0.97, anchor: .center)))
+            }
+        }
+        .animation(.spring(duration: 0.18), value: appState.showCommandPalette)
+        // Hidden button for ⌘K shortcut
+        .background(
+            Button("") { appState.showCommandPalette.toggle() }
+                .keyboardShortcut("k", modifiers: .command)
+                .hidden()
+        )
         // Native macOS search — pipes to AppState.searchQuery
         .searchable(text: $appState.searchQuery, placement: .sidebar, prompt: "Procurar projectos…")
         // Native toolbar

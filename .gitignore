@@ -1,8 +1,36 @@
+# macOS
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Xcode / SwiftPM build artifacts
 /.build
 /Packages
 xcuserdata/
 DerivedData/
+*.xcodeproj/
+*.xcworkspace/
 .swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+
+# Swift Package Manager cache
+.swiftpm/
+
+# Credentials / secrets
 .netrc
+.env
+.env.*
+*.pem
+*.p12
+*.key
+
+# Compiled app bundles (we ship from CI, not from the repo)
 Vela.app/
+*.app/
+
+# Editor artifacts
+.vscode/
+*.swp
+*.swo
+
+# NOTE: Package.resolved is intentionally NOT ignored.
+# It ensures reproducible builds for contributors.

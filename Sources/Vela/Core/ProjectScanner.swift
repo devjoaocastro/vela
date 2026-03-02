@@ -148,6 +148,7 @@ actor ProjectScanner {
         project = await enrichWithDisk(project, at: url)
         project = await enrichWithIssues(project, at: url)
         project = enrichWithMarkdown(project, at: url)
+        project = enrichWithLanguages(project, at: url)
         project.status = project.computedStatus
         return project
     }
@@ -303,6 +304,65 @@ actor ProjectScanner {
             }
         }
         p.markdownFiles = mds
+        return p
+    }
+
+    // MARK: - Language Detection
+
+    private static let extToLang: [String: String] = [
+        "swift": "Swift", "m": "Objective-C", "mm": "Objective-C",
+        "kt": "Kotlin", "kts": "Kotlin",
+        "java": "Java",
+        "py": "Python",
+        "js": "JavaScript", "jsx": "JavaScript", "mjs": "JavaScript",
+        "ts": "TypeScript", "tsx": "TypeScript",
+        "rs": "Rust",
+        "go": "Go",
+        "rb": "Ruby",
+        "php": "PHP",
+        "cs": "C#",
+        "cpp": "C++", "cc": "C++", "cxx": "C++",
+        "c": "C", "h": "C/C++",
+        "dart": "Dart",
+        "vue": "Vue",
+        "svelte": "Svelte",
+        "html": "HTML", "htm": "HTML",
+        "css": "CSS",
+        "scss": "SCSS", "sass": "SCSS",
+        "sh": "Shell", "bash": "Shell", "zsh": "Shell",
+        "sql": "SQL",
+        "r": "R",
+        "lua": "Lua",
+        "ex": "Elixir", "exs": "Elixir",
+        "hs": "Haskell",
+    ]
+
+    private static let skipDepsLang: Set<String> = [
+        "node_modules", ".git", ".build", "build", "dist", ".next",
+        "DerivedData", "venv", ".venv", "__pycache__", ".gradle"
+    ]
+
+    private func enrichWithLanguages(_ project: Project, at url: URL) -> Project {
+        var p = project
+        var counts: [String: Int] = [:]
+
+        if let enumerator = FileManager.default.enumerator(
+            at: url,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) {
+            for case let fileURL as URL in enumerator {
+                let comps = fileURL.pathComponents
+                if Self.skipDepsLang.contains(where: { comps.contains($0) }) { continue }
+                let ext = fileURL.pathExtension.lowercased()
+                if let lang = Self.extToLang[ext] {
+                    counts[lang, default: 0] += 1
+                }
+            }
+        }
+
+        let total = max(1, counts.values.reduce(0, +))
+        p.languages = counts.mapValues { Double($0) / Double(total) * 100.0 }
         return p
     }
 

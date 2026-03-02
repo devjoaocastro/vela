@@ -5,6 +5,7 @@ import SwiftUI
 struct SidebarView: View {
     @EnvironmentObject var appState: AppState
     @State private var filter: SidebarFilter = .all
+    @Environment(\.openSettings) private var openSettings
 
     enum SidebarFilter: String, CaseIterable {
         case all     = "Todos"
@@ -61,8 +62,8 @@ struct SidebarView: View {
             }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 7)
-        .background(.bar)
+        .padding(.vertical, 8)
+        .background(.windowBackground)
     }
 
     private func statItem(value: Int, label: String, systemImage: String, color: Color) -> some View {
@@ -103,6 +104,8 @@ struct SidebarView: View {
                 .contextMenu { rowContextMenu(project) }
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .background(.windowBackground)
         .overlay {
             if displayed.isEmpty {
                 VStack(spacing: 8) {
@@ -137,10 +140,17 @@ struct SidebarView: View {
             .buttonStyle(.borderless)
             .help("Actualizar (⌘R)")
             .disabled(appState.isScanning)
+
+            Button(action: { openSettings() }) {
+                Image(systemName: "gear")
+                    .frame(width: 16, height: 16)
+            }
+            .buttonStyle(.borderless)
+            .help("Configurações (⌘,)")
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 5)
-        .background(.bar)
+        .background(.windowBackground)
     }
 
     // MARK: - Context Menu
@@ -175,20 +185,20 @@ struct ProjectRowView: View {
     let project: Project
 
     var body: some View {
-        HStack(spacing: 9) {
-            // Stack icon
+        HStack(spacing: 10) {
+            // Type icon — stronger fill
             ZStack {
-                RoundedRectangle(cornerRadius: 5)
-                    .fill(Color(hex: project.type.color).opacity(0.12))
-                    .frame(width: 26, height: 26)
+                RoundedRectangle(cornerRadius: 7)
+                    .fill(Color(hex: project.type.color).opacity(0.18))
+                    .frame(width: 30, height: 30)
                 Image(systemName: project.type.icon)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(Color(hex: project.type.color))
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(project.name)
-                    .font(.system(size: 13, weight: .medium))
+                    .font(.system(size: 13, weight: .semibold))
                     .lineLimit(1)
 
                 HStack(spacing: 4) {
@@ -196,8 +206,8 @@ struct ProjectRowView: View {
                         .fill(Color(hex: project.status.color))
                         .frame(width: 5, height: 5)
                     Text(activityLabel)
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
+                        .font(.system(size: 11))
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -214,7 +224,7 @@ struct ProjectRowView: View {
                     .clipShape(Capsule())
             }
         }
-        .padding(.vertical, 2)
+        .padding(.vertical, 3)
     }
 
     private var activityLabel: String {

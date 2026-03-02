@@ -10,6 +10,7 @@ class AppState: ObservableObject {
     @Published var filterType: ProjectType? = nil
     @Published var filterStatus: ProjectStatus? = nil
     @Published var showNewProjectSheet: Bool = false
+    @Published var showCommandPalette: Bool = false
     @Published var lastScanDate: Date? = nil
 
     private let scanner = ProjectScanner()
@@ -95,25 +96,27 @@ class AppState: ObservableObject {
     // MARK: - Open in Editor
 
     func openInEditor(_ project: Project) {
-        let path = project.path
-        // Try VSCode first, then Cursor, then Xcode (for Swift), then Finder
-        let editors: [(String, [String])] = [
-            ("/usr/local/bin/code", ["--new-window", path]),
-            ("/usr/bin/env", ["open", "-a", "Cursor", path]),
-            ("/usr/bin/open", ["-a", "Xcode", path]),
-            ("/usr/bin/open", [path])
+        let url = URL(fileURLWithPath: project.path)
+        // Ordered by preference — uses bundle ID so path doesn't matter
+        let bundleIDs = [
+            "com.microsoft.VSCode",
+            "com.todesktop.230313mzl4w4u92",  // Cursor
+            "dev.zed.zed",                      // Zed
+            "com.sublimetext.4",
+            "com.sublimetext.3",
+            "com.apple.dt.Xcode"
         ]
-        for (exec, args) in editors {
-            if FileManager.default.fileExists(atPath: exec) {
-                let process = Process()
-                process.executableURL = URL(fileURLWithPath: exec)
-                process.arguments = args
-                try? process.run()
+        let config = NSWorkspace.OpenConfiguration()
+        config.promptsUserIfNeeded = false
+        for bid in bundleIDs {
+            if let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bid) {
+                NSWorkspace.shared.open([url], withApplicationAt: appURL,
+                                        configuration: config, completionHandler: nil)
                 return
             }
         }
-        // Fallback: open in Finder
-        NSWorkspace.shared.open(URL(fileURLWithPath: path))
+        // Fallback: default app for the folder
+        NSWorkspace.shared.open(url)
     }
 
     func revealInFinder(_ project: Project) {

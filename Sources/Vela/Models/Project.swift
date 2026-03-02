@@ -33,13 +33,13 @@ enum ProjectType: String, Codable, CaseIterable {
         switch self {
         case .swiftApp:      return "#F05138"
         case .reactNative:   return "#61DAFB"
-        case .nextJS:        return "#000000"
+        case .nextJS:        return "#94A3B8"
         case .node:          return "#339933"
         case .python:        return "#3776AB"
         case .flutter:       return "#02569B"
         case .rust:          return "#CE4A00"
         case .staticSite:    return "#E34F26"
-        case .documentation: return "#8B5CF6"
+        case .documentation: return "#0891B2"
         case .unknown:       return "#6B7280"
         }
     }
@@ -72,7 +72,7 @@ enum ProjectStatus: String, Codable, CaseIterable {
         case .active:   return "#10B981"
         case .slow:     return "#F97316"
         case .inactive: return "#6B7280"
-        case .archived: return "#8B5CF6"
+        case .archived: return "#64748B"
         case .dead:     return "#EF4444"
         }
     }

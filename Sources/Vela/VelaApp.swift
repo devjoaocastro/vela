@@ -55,6 +55,7 @@ struct VelaApp: App {
                 .environmentObject(llmEngine)
                 .environmentObject(embeddedLLM)
                 .frame(minWidth: 980, minHeight: 620)
+                .tint(Color(hex: "#2563EB"))  // Vela blue — consistent across the app
                 .onAppear {
                     // Re-detect embedded model availability on appear
                     Task { await embeddedLLM.detect() }
