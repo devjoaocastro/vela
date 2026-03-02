@@ -13,7 +13,7 @@ Vela automatically discovers every project on your Mac, gives each a health scor
 **Zero external dependencies. Pure Apple frameworks.**
 
 <p align="center">
-  <img src="docs/screenshots/overview.png" width="720" alt="Vela — Explorer with project sidebar and README rendering" />
+  <img src="docs/screenshots/vela-explorer.png" width="720" alt="Vela — Explorer with project sidebar and README rendering" />
 </p>
 
 ---
