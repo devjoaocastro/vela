@@ -14,13 +14,41 @@ Vela automatically discovers every project on your Mac, gives each a health scor
 
 ---
 
+## Download
+
+| | |
+|---|---|
+| **Vela-1.0.0.dmg** | [Download Latest Release](https://github.com/devjoaocastro/vela/releases) |
+| **Requirements** | macOS 14 (Sonoma) or later, Apple Silicon or Intel |
+| **Size** | ~2.5 MB |
+
+Or build from source:
+```bash
+git clone https://github.com/devjoaocastro/vela.git
+cd vela && make install
+```
+
+---
+
+## Screenshots
+
+<p align="center">
+  <img src="docs/screenshots/overview.png" width="720" alt="Vela Overview" />
+</p>
+
+---
+
 ## Features
 
 **Project Discovery** — Automatically scans your Mac for coding projects. Detects 10+ project types: Swift, React Native, Next.js, Node.js, Python, Flutter, Rust, Static Sites, Documentation, and more.
 
 **Vitality Score** — Every project gets a 0–100 health score based on git activity, remote presence, documentation quality, and uncommitted changes. Projects are classified as Active, Slow, Inactive, or Dead.
 
-**X-Ray Dashboard** — Per-project overview with git info (last commit, total commits, branch, remote), disk usage breakdown (code vs. dependencies vs. build artifacts), and stack detection.
+**Overview Dashboard** — Per-project overview with git info (last commit, total commits, branch, remote), recent commit timeline with author avatars, disk usage breakdown, language detection, and stack identification.
+
+**Recent Activity** — Shows the last 15 commits with short hash, message, author, and relative date. Color-coded by commit type (fix, feature, refactor, docs).
+
+**Explorer** — Full file tree with recursive directory loading, README rendering via WebKit with GitHub-style CSS, and one-click Markdown export.
 
 **AI Analysis** — Ask AI about any project. Get structured verdicts (CONTINUA / ARQUIVA / REFACTORA / LANÇA) with summary, strengths, weaknesses, and next steps. Supports 5 providers:
 - Apple Intelligence (on-device, zero cost)
@@ -31,13 +59,9 @@ Vela automatically discovers every project on your Mac, gives each a health scor
 
 **Security Scanning** — Detects exposed secrets (API keys, private keys, database URLs), tracked `.env` files, missing `.gitignore`, and other security issues across all your projects.
 
-**README Generation** — One-click AI-generated README for any project, based on its actual structure, stack, and purpose.
+**Command Palette** — `⌘K` to open. Keyboard-driven project switcher with fuzzy search and arrow key navigation.
 
-**Project Chat** — Conversational AI interface with context about the specific project. Ask questions, get suggestions, understand old codebases.
-
-**Command Palette** — Keyboard-driven command palette for fast navigation and actions across the app.
-
-**Embedded Browser** — Built-in WebKit browser per project that auto-opens the GitHub remote URL, with Markdown rendering support.
+**Hide Projects** — Right-click any project to hide it from the sidebar. Excluded projects are remembered across sessions.
 
 **Menu Bar App** — Lives in the macOS menu bar (sailboat icon). Always accessible, stays alive when the window is closed.
 

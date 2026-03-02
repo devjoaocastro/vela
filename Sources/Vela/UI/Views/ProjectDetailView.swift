@@ -250,275 +250,444 @@ struct ProjectHeaderView: View {
     }
 }
 
-// MARK: - Raio-X Tab
+// MARK: - Overview Tab
+
+struct RecentCommit: Identifiable {
+    let id = UUID()
+    let hash: String
+    let message: String
+    let author: String
+    let relativeDate: String
+}
 
 struct XRayView: View {
     let project: Project
+    @State private var recentCommits: [RecentCommit] = []
 
     var body: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: 16) {
 
-            // ── Quick stats banner ────────────────────────────────────────
-            if project.git.hasGit {
-                HStack(spacing: 1) {
-                    statBadge(
-                        icon: "clock",
-                        label: "Último commit",
-                        value: project.git.lastCommitDate.map { formatRelative($0) } ?? "—",
-                        color: .blue
-                    )
-                    Divider().frame(height: 40)
-                    statBadge(
-                        icon: "arrow.triangle.branch",
-                        label: "Branch",
-                        value: project.git.activeBranch ?? "—",
-                        color: .teal
-                    )
-                    Divider().frame(height: 40)
-                    statBadge(
-                        icon: "number",
-                        label: "Commits",
-                        value: "\(project.git.totalCommits)",
-                        color: .teal
-                    )
-                    if project.git.uncommittedChanges > 0 {
-                        Divider().frame(height: 40)
-                        statBadge(
-                            icon: "exclamationmark.triangle.fill",
-                            label: "Por commitar",
-                            value: "\(project.git.uncommittedChanges)",
-                            color: .orange
-                        )
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator, lineWidth: 0.5))
+            // ── Stats ribbon ──────────────────────────────────────────────
+            statsRibbon
+
+            // ── Recent activity ───────────────────────────────────────────
+            if project.git.hasGit && !recentCommits.isEmpty {
+                recentActivitySection
             }
 
-            // ── Main cards grid ───────────────────────────────────────────
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 14) {
-
-                // Git card
-                XRayCard(title: "Git", icon: "arrow.triangle.branch", accent: .blue) {
-                    if project.git.hasGit {
-                        if let msg = project.git.lastCommitMessage {
-                            Text(msg)
-                                .font(.system(size: 12, weight: .medium))
-                                .foregroundStyle(.primary)
-                                .lineLimit(2)
-                                .padding(.bottom, 4)
-                        }
-                        XRayRow(label: "Remote", value: project.git.hasRemote ? "GitHub ✓" : "Sem remote",
-                                valueColor: project.git.hasRemote ? .green : .secondary)
-                    } else {
-                        VStack(spacing: 6) {
-                            Image(systemName: "xmark.circle")
-                                .font(.system(size: 22))
-                                .foregroundStyle(.tertiary)
-                            Text("Sem repositório Git")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 8)
-                    }
-                }
-
-                // Disco card
-                XRayCard(title: "Disco", icon: "internaldrive", accent: .green) {
-                    if project.disk.totalBytes > 0 {
-                        HStack(alignment: .lastTextBaseline, spacing: 3) {
-                            Text(project.disk.formattedTotal)
-                                .font(.system(size: 22, weight: .bold, design: .rounded))
-                            Text("total")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        .padding(.bottom, 2)
-                        XRayRow(label: "Código", value: project.disk.formattedCode, valueColor: .green)
-                        if project.disk.dependencyBytes > 0 {
-                            XRayRow(label: "Dependências", value: project.disk.formattedDeps, valueColor: .orange)
-                        }
-                        // Mini disk bar
-                        GeometryReader { geo in
-                            HStack(spacing: 2) {
-                                let total = max(project.disk.totalBytes, 1)
-                                let codeR = CGFloat(project.disk.codeBytes) / CGFloat(total)
-                                let depR  = CGFloat(project.disk.dependencyBytes) / CGFloat(total)
-                                Capsule().fill(.green).frame(width: max(4, geo.size.width * codeR))
-                                if depR > 0 {
-                                    Capsule().fill(.orange).frame(width: max(4, geo.size.width * depR))
-                                }
-                                Spacer(minLength: 0)
-                            }
-                        }
-                        .frame(height: 6)
-                        .padding(.top, 6)
-                    } else {
-                        Text("—").foregroundStyle(.tertiary).font(.caption)
-                    }
-                }
-
-                // Vitalidade card (full width)
-                XRayCard(title: "Vitalidade", icon: "waveform.path.ecg", accent: vitalityColor) {
-                    HStack(spacing: 20) {
-                        ZStack {
-                            Circle()
-                                .stroke(vitalityColor.opacity(0.15), lineWidth: 10)
-                            Circle()
-                                .trim(from: 0, to: CGFloat(project.vitalityScore) / 100)
-                                .stroke(
-                                    vitalityColor,
-                                    style: StrokeStyle(lineWidth: 10, lineCap: .round)
-                                )
-                                .rotationEffect(.degrees(-90))
-                                .animation(.spring(duration: 0.6), value: project.vitalityScore)
-                            VStack(spacing: 0) {
-                                Text("\(project.vitalityScore)")
-                                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                                    .foregroundStyle(vitalityColor)
-                                Text("/100")
-                                    .font(.system(size: 9))
-                                    .foregroundStyle(.tertiary)
-                            }
-                        }
-                        .frame(width: 90, height: 90)
-
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text(vitalityLabel)
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundStyle(vitalityColor)
-                            if let days = project.git.daysSinceLastCommit {
-                                Text(days == 0 ? "Commit hoje" : "\(days) dias sem commits")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            if project.git.uncommittedChanges > 0 {
-                                Label("\(project.git.uncommittedChanges) alterações pendentes", systemImage: "exclamationmark.triangle.fill")
-                                    .font(.caption)
-                                    .foregroundStyle(.orange)
-                            }
-                        }
-                        Spacer()
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-
-                // Stack card
-                XRayCard(title: "Stack", icon: "square.stack.3d.up", accent: Color(hex: project.type.color)) {
-                    HStack(spacing: 8) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(hex: project.type.color).opacity(0.15))
-                                .frame(width: 36, height: 36)
-                            Image(systemName: project.type.icon)
-                                .font(.system(size: 16))
-                                .foregroundStyle(Color(hex: project.type.color))
-                        }
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(project.type.rawValue)
-                                .font(.system(size: 13, weight: .semibold))
-                            Text(URL(fileURLWithPath: project.path).lastPathComponent)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                    }
-                    .padding(.bottom, 4)
-                    if !project.markdownFiles.isEmpty {
-                        XRayRow(label: "Docs", value: "\(project.markdownFiles.count) ficheiro(s)")
-                    }
-                    XRayRow(label: "Problemas", value: project.issues.isEmpty ? "Nenhum ✓" : "\(project.issues.count)",
-                            valueColor: project.issues.isEmpty ? .green : .orange)
-                    if !project.tags.isEmpty {
-                        ScrollView(.horizontal, showsIndicators: false) {
-                            HStack(spacing: 4) {
-                                ForEach(project.tags, id: \.self) { tag in
-                                    Text(tag)
-                                        .font(.caption2.weight(.medium))
-                                        .padding(.horizontal, 6).padding(.vertical, 2)
-                                        .background(Color.accentColor.opacity(0.12))
-                                        .foregroundStyle(Color.accentColor)
-                                        .clipShape(Capsule())
-                                }
-                            }
-                        }
-                        .padding(.top, 2)
-                    }
-                }
+            // ── Cards grid ────────────────────────────────────────────────
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                gitCard
+                discoCard
+                vitalidadeCard
+                stackCard
             }
 
-            // ── Language bar (full width, GitHub style) ───────────────────
+            // ── Language bar ──────────────────────────────────────────────
             if !project.languages.isEmpty {
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "chevron.left.forwardslash.chevron.right")
-                            .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(.blue)
-                        Text("Linguagens")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(.primary.opacity(0.8))
-                    }
-
-                    // Horizontal stacked bar
-                    let sorted = project.languages.sorted { $0.value > $1.value }.prefix(8)
-                    GeometryReader { geo in
-                        HStack(spacing: 2) {
-                            ForEach(Array(sorted), id: \.key) { lang, pct in
-                                RoundedRectangle(cornerRadius: 3)
-                                    .fill(langColor(lang))
-                                    .frame(width: max(4, geo.size.width * CGFloat(pct / 100)))
-                            }
-                            Spacer(minLength: 0)
-                        }
-                    }
-                    .frame(height: 10)
-                    .clipShape(Capsule())
-
-                    // Legend
-                    FlowLayout(spacing: 10) {
-                        ForEach(Array(sorted), id: \.key) { lang, pct in
-                            HStack(spacing: 5) {
-                                Circle().fill(langColor(lang)).frame(width: 8, height: 8)
-                                Text(lang)
-                                    .font(.caption.weight(.medium))
-                                    .foregroundStyle(.primary)
-                                Text("\(Int(pct))%")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
-                }
-                .padding(16)
-                .background(Color(nsColor: .controlBackgroundColor))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
-                .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator, lineWidth: 0.5))
+                languagesSection
             }
         }
         .padding(20)
+        .task(id: project.path) { await loadCommits() }
+    }
+
+    // MARK: - Stats Ribbon
+
+    @ViewBuilder
+    private var statsRibbon: some View {
+        HStack(spacing: 0) {
+            if project.git.hasGit {
+                statBadge(icon: "clock", label: "Último commit",
+                          value: project.git.lastCommitDate.map { formatRelative($0) } ?? "—", color: .blue)
+                Divider().frame(height: 36).padding(.horizontal, 2)
+                statBadge(icon: "arrow.triangle.branch", label: "Branch",
+                          value: project.git.activeBranch ?? "—", color: .teal)
+                Divider().frame(height: 36).padding(.horizontal, 2)
+                statBadge(icon: "number", label: "Commits",
+                          value: "\(project.git.totalCommits)", color: .teal)
+                if project.git.uncommittedChanges > 0 {
+                    Divider().frame(height: 36).padding(.horizontal, 2)
+                    statBadge(icon: "exclamationmark.triangle.fill", label: "Por commitar",
+                              value: "\(project.git.uncommittedChanges)", color: .orange)
+                }
+            } else {
+                statBadge(icon: "folder", label: "Tipo",
+                          value: project.type.rawValue, color: Color(hex: project.type.color))
+                Divider().frame(height: 36).padding(.horizontal, 2)
+                statBadge(icon: "waveform.path.ecg", label: "Vitalidade",
+                          value: "\(project.vitalityScore)/100", color: vitalityColor)
+                Divider().frame(height: 36).padding(.horizontal, 2)
+                statBadge(icon: "doc.text", label: "Docs",
+                          value: "\(project.markdownFiles.count) .md", color: .secondary)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 6)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator, lineWidth: 0.5))
+    }
+
+    // MARK: - Recent Activity
+
+    private var recentActivitySection: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Header
+            HStack {
+                sectionLabel("Actividade Recente", icon: "clock.arrow.circlepath", color: .blue)
+                Spacer()
+                Text("\(recentCommits.count) commits")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 10)
+
+            Divider()
+
+            // Commits
+            VStack(spacing: 0) {
+                ForEach(Array(recentCommits.prefix(8).enumerated()), id: \.element.id) { idx, commit in
+                    commitRow(commit)
+                    if idx < min(7, recentCommits.count - 1) {
+                        Divider().padding(.leading, 48)
+                    }
+                }
+            }
+        }
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator, lineWidth: 0.5))
+    }
+
+    private func commitRow(_ commit: RecentCommit) -> some View {
+        HStack(spacing: 10) {
+            // Author avatar
+            ZStack {
+                Circle()
+                    .fill(avatarGradient(commit.author))
+                    .frame(width: 26, height: 26)
+                Text(initials(commit.author))
+                    .font(.system(size: 9, weight: .bold, design: .rounded))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(commit.message)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.primary)
+                    .lineLimit(1)
+                HStack(spacing: 5) {
+                    Text(commit.hash)
+                        .font(.system(size: 10, design: .monospaced))
+                        .foregroundStyle(.secondary)
+                        .padding(.horizontal, 5)
+                        .padding(.vertical, 1)
+                        .background(.quaternary)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                    Text(commit.author)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                    Text(commit.relativeDate)
+                        .font(.caption2)
+                        .foregroundStyle(.tertiary)
+                }
+            }
+
+            Spacer(minLength: 0)
+
+            // Commit type dot
+            commitTypeDot(commit.message)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+    }
+
+    private func commitTypeDot(_ msg: String) -> some View {
+        let lower = msg.lowercased()
+        let color: Color
+        if lower.hasPrefix("fix") || lower.contains("bug") || lower.hasPrefix("hotfix") {
+            color = .red
+        } else if lower.hasPrefix("feat") || lower.hasPrefix("add") || lower.hasPrefix("new") {
+            color = .green
+        } else if lower.hasPrefix("refactor") || lower.hasPrefix("chore") || lower.hasPrefix("clean") {
+            color = .secondary
+        } else if lower.hasPrefix("doc") || lower.hasPrefix("readme") {
+            color = .cyan
+        } else {
+            color = .accentColor
+        }
+        return Circle().fill(color).frame(width: 6, height: 6)
+    }
+
+    // MARK: - Cards
+
+    private var gitCard: some View {
+        OverviewCard(title: "Git", icon: "arrow.triangle.branch", accent: .blue) {
+            if project.git.hasGit {
+                if let msg = project.git.lastCommitMessage {
+                    Text(msg)
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.primary)
+                        .lineLimit(2)
+                        .padding(.bottom, 2)
+                }
+                OverviewRow(label: "Branch", value: project.git.activeBranch ?? "—")
+                OverviewRow(label: "Remote", value: project.git.hasRemote ? "Conectado" : "Sem remote",
+                            valueColor: project.git.hasRemote ? .green : .secondary)
+                if project.git.uncommittedChanges > 0 {
+                    OverviewRow(label: "Pendente", value: "\(project.git.uncommittedChanges) ficheiros",
+                                valueColor: .orange)
+                }
+            } else {
+                VStack(spacing: 6) {
+                    Image(systemName: "xmark.circle")
+                        .font(.system(size: 20))
+                        .foregroundStyle(.tertiary)
+                    Text("Sem repositório Git")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 8)
+            }
+        }
+    }
+
+    private var discoCard: some View {
+        OverviewCard(title: "Disco", icon: "internaldrive", accent: .green) {
+            if project.disk.totalBytes > 0 {
+                HStack(alignment: .lastTextBaseline, spacing: 3) {
+                    Text(project.disk.formattedTotal)
+                        .font(.system(size: 20, weight: .bold, design: .rounded))
+                    Text("total")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.bottom, 2)
+                OverviewRow(label: "Código", value: project.disk.formattedCode, valueColor: .green)
+                if project.disk.dependencyBytes > 0 {
+                    OverviewRow(label: "Dependências", value: project.disk.formattedDeps, valueColor: .orange)
+                }
+                GeometryReader { geo in
+                    HStack(spacing: 2) {
+                        let total = max(project.disk.totalBytes, 1)
+                        let codeR = CGFloat(project.disk.codeBytes) / CGFloat(total)
+                        let depR  = CGFloat(project.disk.dependencyBytes) / CGFloat(total)
+                        Capsule().fill(.green).frame(width: max(4, geo.size.width * codeR))
+                        if depR > 0 {
+                            Capsule().fill(.orange).frame(width: max(4, geo.size.width * depR))
+                        }
+                        Spacer(minLength: 0)
+                    }
+                }
+                .frame(height: 5)
+                .padding(.top, 4)
+            } else {
+                Text("—").foregroundStyle(.tertiary).font(.caption)
+            }
+        }
+    }
+
+    private var vitalidadeCard: some View {
+        OverviewCard(title: "Vitalidade", icon: "waveform.path.ecg", accent: vitalityColor) {
+            HStack(spacing: 16) {
+                ZStack {
+                    Circle()
+                        .stroke(vitalityColor.opacity(0.12), lineWidth: 8)
+                    Circle()
+                        .trim(from: 0, to: CGFloat(project.vitalityScore) / 100)
+                        .stroke(vitalityColor, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                        .rotationEffect(.degrees(-90))
+                        .animation(.spring(duration: 0.6), value: project.vitalityScore)
+                    VStack(spacing: 0) {
+                        Text("\(project.vitalityScore)")
+                            .font(.system(size: 26, weight: .bold, design: .rounded))
+                            .foregroundStyle(vitalityColor)
+                        Text("/100")
+                            .font(.system(size: 8))
+                            .foregroundStyle(.tertiary)
+                    }
+                }
+                .frame(width: 74, height: 74)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(vitalityLabel)
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundStyle(vitalityColor)
+                    if let days = project.git.daysSinceLastCommit {
+                        Text(days == 0 ? "Commit hoje" : "\(days) dias sem commits")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                    if project.git.uncommittedChanges > 0 {
+                        Label("\(project.git.uncommittedChanges) pendentes", systemImage: "exclamationmark.triangle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.orange)
+                    }
+                }
+                Spacer(minLength: 0)
+            }
+        }
+    }
+
+    private var stackCard: some View {
+        OverviewCard(title: "Stack", icon: "square.stack.3d.up", accent: Color(hex: project.type.color)) {
+            HStack(spacing: 8) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 7)
+                        .fill(Color(hex: project.type.color).opacity(0.12))
+                        .frame(width: 32, height: 32)
+                    Image(systemName: project.type.icon)
+                        .font(.system(size: 14))
+                        .foregroundStyle(Color(hex: project.type.color))
+                }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(project.type.rawValue)
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(URL(fileURLWithPath: project.path).lastPathComponent)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+            }
+            .padding(.bottom, 2)
+            if !project.markdownFiles.isEmpty {
+                OverviewRow(label: "Docs", value: "\(project.markdownFiles.count) ficheiro(s)")
+            }
+            OverviewRow(label: "Problemas",
+                        value: project.issues.isEmpty ? "Nenhum" : "\(project.issues.count)",
+                        valueColor: project.issues.isEmpty ? .green : .orange)
+            if !project.tags.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 4) {
+                        ForEach(project.tags, id: \.self) { tag in
+                            Text(tag)
+                                .font(.caption2.weight(.medium))
+                                .padding(.horizontal, 6).padding(.vertical, 2)
+                                .background(Color.accentColor.opacity(0.1))
+                                .foregroundStyle(Color.accentColor)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+                .padding(.top, 2)
+            }
+        }
+    }
+
+    // MARK: - Languages
+
+    private var languagesSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            sectionLabel("Linguagens", icon: "chevron.left.forwardslash.chevron.right", color: .blue)
+
+            let sorted = project.languages.sorted { $0.value > $1.value }.prefix(8)
+            GeometryReader { geo in
+                HStack(spacing: 2) {
+                    ForEach(Array(sorted), id: \.key) { lang, pct in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(langColor(lang))
+                            .frame(width: max(4, geo.size.width * CGFloat(pct / 100)))
+                    }
+                    Spacer(minLength: 0)
+                }
+            }
+            .frame(height: 8)
+            .clipShape(Capsule())
+
+            FlowLayout(spacing: 10) {
+                ForEach(Array(sorted), id: \.key) { lang, pct in
+                    HStack(spacing: 4) {
+                        Circle().fill(langColor(lang)).frame(width: 7, height: 7)
+                        Text(lang).font(.caption.weight(.medium))
+                        Text("\(Int(pct))%").font(.caption).foregroundStyle(.secondary)
+                    }
+                }
+            }
+        }
+        .padding(14)
+        .background(Color(nsColor: .controlBackgroundColor))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator, lineWidth: 0.5))
+    }
+
+    // MARK: - Async
+
+    private func loadCommits() async {
+        guard project.git.hasGit else { return }
+        let commits: [RecentCommit] = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let proc = Process()
+                proc.executableURL = URL(fileURLWithPath: "/usr/bin/git")
+                proc.arguments = ["-C", project.path, "log", "--format=%h|%s|%an|%ar", "-15"]
+                let pipe = Pipe()
+                proc.standardOutput = pipe
+                proc.standardError = Pipe()
+                try? proc.run()
+                proc.waitUntilExit()
+                let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                let output = String(data: data, encoding: .utf8) ?? ""
+                let parsed = output.components(separatedBy: "\n").compactMap { line -> RecentCommit? in
+                    guard !line.isEmpty else { return nil }
+                    let parts = line.components(separatedBy: "|")
+                    guard parts.count >= 4 else { return nil }
+                    return RecentCommit(
+                        hash: parts[0],
+                        message: parts.dropFirst().dropLast(2).joined(separator: "|"),
+                        author: parts[parts.count - 2],
+                        relativeDate: parts[parts.count - 1]
+                    )
+                }
+                continuation.resume(returning: parsed)
+            }
+        }
+        recentCommits = commits
     }
 
     // MARK: - Helpers
 
+    private func sectionLabel(_ text: String, icon: String, color: Color) -> some View {
+        HStack(spacing: 6) {
+            Image(systemName: icon)
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(color)
+            Text(text)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.primary.opacity(0.8))
+        }
+    }
+
     private func statBadge(icon: String, label: String, value: String, color: Color) -> some View {
         VStack(spacing: 3) {
             Image(systemName: icon)
-                .font(.system(size: 12))
+                .font(.system(size: 11))
                 .foregroundStyle(color)
             Text(value)
-                .font(.system(size: 13, weight: .semibold))
+                .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.primary)
                 .lineLimit(1)
             Text(label)
-                .font(.caption2)
+                .font(.system(size: 9))
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
+        .padding(.vertical, 8)
+    }
+
+    private func initials(_ name: String) -> String {
+        let words = name.split(separator: " ")
+        return words.prefix(2).compactMap { $0.first }.map(String.init).joined().uppercased()
+    }
+
+    private func avatarGradient(_ name: String) -> LinearGradient {
+        let pairs: [(Color, Color)] = [
+            (.blue, .cyan), (.teal, .green), (.orange, .yellow),
+            (.pink, .red), (.indigo, .blue), (.mint, .teal)
+        ]
+        let idx = abs(name.hashValue) % pairs.count
+        return LinearGradient(colors: [pairs[idx].0, pairs[idx].1], startPoint: .topLeading, endPoint: .bottomTrailing)
     }
 
     private func langColor(_ lang: String) -> Color {
@@ -548,16 +717,18 @@ struct XRayView: View {
         switch project.vitalityScore {
         case 70...: return .green
         case 40...69: return .orange
-        default:    return .red
+        default: return .red
         }
     }
+
     private var vitalityLabel: String {
         switch project.vitalityScore {
         case 70...: return "Vivo e activo"
         case 40...69: return "Adormecido"
-        default:    return "Precisa de atenção"
+        default: return "Precisa de atenção"
         }
     }
+
     private func formatRelative(_ date: Date) -> String {
         let f = RelativeDateTimeFormatter()
         f.locale = .current
@@ -565,45 +736,55 @@ struct XRayView: View {
     }
 }
 
-struct XRayCard<Content: View>: View {
+// MARK: - Reusable Components
+
+struct OverviewCard<Content: View>: View {
     let title: String
     let icon: String
     var accent: Color = .blue
     @ViewBuilder let content: Content
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 7) {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
                 ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(accent.opacity(0.15))
-                        .frame(width: 22, height: 22)
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(accent.opacity(0.12))
+                        .frame(width: 20, height: 20)
                     Image(systemName: icon)
-                        .font(.system(size: 11, weight: .semibold))
+                        .font(.system(size: 10, weight: .semibold))
                         .foregroundStyle(accent)
                 }
                 Text(title)
-                    .font(.system(size: 12, weight: .semibold))
-                    .foregroundStyle(.primary.opacity(0.75))
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(.primary.opacity(0.7))
             }
             content
         }
-        .padding(16)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(nsColor: .controlBackgroundColor))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.separator, lineWidth: 0.5))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(.separator, lineWidth: 0.5))
     }
 }
 
-struct XRayRow: View {
-    let label: String; let value: String
+struct OverviewRow: View {
+    let label: String
+    let value: String
     var valueColor: Color = .primary
+
     var body: some View {
         HStack {
-            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(label)
+                .font(.caption)
+                .foregroundStyle(.secondary)
             Spacer()
-            Text(value).font(.caption.weight(.medium)).foregroundStyle(valueColor).lineLimit(1).truncationMode(.middle)
+            Text(value)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(valueColor)
+                .lineLimit(1)
+                .truncationMode(.middle)
         }
     }
 }
@@ -624,15 +805,27 @@ struct ExplorerView: View {
     }
 
     private var readmeContent: String? {
-        let candidates = ["README.md", "readme.md", "README.MD", "Readme.md"]
+        // Try common readme filenames case-insensitively
+        let candidates = ["README.md", "readme.md", "README.MD", "Readme.md",
+                          "README", "readme.rst", "README.rst", "readme.txt",
+                          "README.txt", "readme.markdown", "README.markdown"]
         for name in candidates {
             let path = project.path + "/" + name
             if let content = try? String(contentsOfFile: path, encoding: .utf8), !content.isEmpty {
                 return content
             }
         }
+        // Fallback: case-insensitive scan of root directory
+        if let items = try? FileManager.default.contentsOfDirectory(atPath: project.path) {
+            if let readme = items.first(where: { $0.lowercased().hasPrefix("readme") }) {
+                let path = project.path + "/" + readme
+                if let content = try? String(contentsOfFile: path, encoding: .utf8), !content.isEmpty {
+                    return content
+                }
+            }
+        }
         return project.markdownFiles.first(where: {
-            URL(fileURLWithPath: $0).lastPathComponent.lowercased() == "readme.md"
+            URL(fileURLWithPath: $0).lastPathComponent.lowercased().hasPrefix("readme")
         }).flatMap { try? String(contentsOfFile: $0, encoding: .utf8) }
     }
 

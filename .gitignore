@@ -34,3 +34,6 @@ Vela.app/
 
 # NOTE: Package.resolved is intentionally NOT ignored.
 # It ensures reproducible builds for contributors.
+Vela-1.0.0.dmg
+Vela.iconset/
+Vela.app/

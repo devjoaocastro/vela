@@ -171,10 +171,13 @@ struct SidebarView: View {
         }
 
         Divider()
-        Button("Arquivar", role: .destructive) {
+        Button("Arquivar") {
             var p = project
             p.status = .archived
             appState.update(p)
+        }
+        Button("Ocultar da Lista", role: .destructive) {
+            appState.excludeProject(project)
         }
     }
 }

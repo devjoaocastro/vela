@@ -15,7 +15,7 @@ let package = Package(
         .executableTarget(
             name: "Vela",
             path: "Sources/Vela",
-            exclude: ["Resources/Info.plist"],
+            exclude: ["Resources/Info.plist", "Resources/AppIcon.icns"],
             resources: [
                 .process("Resources/pt.lproj"),
                 .process("Resources/en.lproj")

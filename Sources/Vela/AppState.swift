@@ -12,6 +12,7 @@ class AppState: ObservableObject {
     @Published var showNewProjectSheet: Bool = false
     @Published var showCommandPalette: Bool = false
     @Published var lastScanDate: Date? = nil
+    @Published var excludedPaths: Set<String> = []
 
     private let scanner = ProjectScanner()
     private let storageURL: URL
@@ -21,6 +22,8 @@ class AppState: ObservableObject {
         let dir = support.appendingPathComponent("Vela")
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         storageURL = dir.appendingPathComponent("projects.json")
+        let saved = UserDefaults.standard.stringArray(forKey: "vela.excludedPaths") ?? []
+        excludedPaths = Set(saved)
         loadPersisted()
     }
 
@@ -60,10 +63,27 @@ class AppState: ObservableObject {
             merged.append(scanned)
         }
 
-        projects = merged
+        projects = merged.filter { !excludedPaths.contains($0.path) }
         lastScanDate = Date()
         isScanning = false
         persist()
+    }
+
+    // MARK: - Exclude
+
+    func excludeProject(_ project: Project) {
+        excludedPaths.insert(project.path)
+        UserDefaults.standard.set(Array(excludedPaths), forKey: "vela.excludedPaths")
+        projects.removeAll { $0.path == project.path }
+        if selectedProject?.path == project.path {
+            selectedProject = projects.first
+        }
+    }
+
+    func restoreAllExcluded() {
+        excludedPaths.removeAll()
+        UserDefaults.standard.removeObject(forKey: "vela.excludedPaths")
+        Task { await scanProjects() }
     }
 
     // MARK: - Update

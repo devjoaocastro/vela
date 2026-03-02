@@ -1,11 +1,14 @@
 APP_NAME   = Vela
 BUNDLE_ID  = com.vela.app
+VERSION    = 1.0.0
 BUILD_DIR  = .build/arm64-apple-macosx
 APP_BUNDLE = $(APP_NAME).app
+DMG_NAME   = $(APP_NAME)-$(VERSION).dmg
+ICON_SRC   = Sources/Vela/Resources/AppIcon.icns
 
 # ── Build ───────────────────────────────────────────────────────────────────
 
-.PHONY: build build-release app app-release install run clean
+.PHONY: build build-release app app-release install run run-release dmg clean
 
 build:
 	swift build 2>&1
@@ -22,6 +25,7 @@ app: build
 	@mkdir -p $(APP_BUNDLE)/Contents/Resources
 	@cp $(BUILD_DIR)/debug/$(APP_NAME) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
 	@cp Sources/Vela/Resources/Info.plist $(APP_BUNDLE)/Contents/Info.plist
+	@[ -f $(ICON_SRC) ] && cp $(ICON_SRC) $(APP_BUNDLE)/Contents/Resources/AppIcon.icns || true
 	@/usr/bin/codesign --sign - --force --deep $(APP_BUNDLE) 2>/dev/null || true
 	@echo "✓ $(APP_BUNDLE) ready — run: make run"
 
@@ -32,6 +36,7 @@ app-release: build-release
 	@mkdir -p $(APP_BUNDLE)/Contents/Resources
 	@cp $(BUILD_DIR)/release/$(APP_NAME) $(APP_BUNDLE)/Contents/MacOS/$(APP_NAME)
 	@cp Sources/Vela/Resources/Info.plist $(APP_BUNDLE)/Contents/Info.plist
+	@[ -f $(ICON_SRC) ] && cp $(ICON_SRC) $(APP_BUNDLE)/Contents/Resources/AppIcon.icns || true
 	@/usr/bin/codesign --sign - --force --deep $(APP_BUNDLE) 2>/dev/null || true
 	@echo "✓ $(APP_BUNDLE) (release) ready"
 
@@ -42,6 +47,21 @@ run: app
 
 run-release: app-release
 	@open $(APP_BUNDLE)
+
+# ── DMG (drag-and-drop installer) ───────────────────────────────────────────
+
+dmg: app-release
+	@echo "→ Creating $(DMG_NAME)…"
+	@rm -f $(DMG_NAME)
+	@mkdir -p /tmp/vela_dmg
+	@cp -r $(APP_BUNDLE) /tmp/vela_dmg/
+	@ln -sf /Applications /tmp/vela_dmg/Applications
+	@hdiutil create -volname "Vela $(VERSION)" \
+	    -srcfolder /tmp/vela_dmg \
+	    -ov -format UDZO \
+	    -o $(DMG_NAME) 2>&1
+	@rm -rf /tmp/vela_dmg
+	@echo "✓ $(DMG_NAME) ready"
 
 # ── Install to /Applications ────────────────────────────────────────────────
 
@@ -55,5 +75,5 @@ install: app-release
 # ── Clean ───────────────────────────────────────────────────────────────────
 
 clean:
-	@rm -rf .build $(APP_BUNDLE)
+	@rm -rf .build $(APP_BUNDLE) $(DMG_NAME) /tmp/vela_dmg
 	@echo "✓ Cleaned"
