@@ -33,7 +33,7 @@ cd vela && make install
 ## Screenshots
 
 <p align="center">
-  <img src="docs/screenshots/overview.png" width="720" alt="Vela Overview" />
+  <img src="docs/screenshots/vela-explorer.png" width="720" alt="Vela — Explorer with README rendering" />
 </p>
 
 ---
